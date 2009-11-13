@@ -83,12 +83,12 @@
     	(create-actions)
     	(create-hooks))))
 	
-(defmacro with-ns "Execute a block within an existing namespace" 
-	[my-ns form]
-		`(let [original-ns *ns*]
-			 (in-ns ~my-ns)
-			 ~form
-			 (in-ns original-ns)))
+;;(defmacro with-ns "Execute a block within an existing namespace" 
+;;	[my-ns form]
+;;		`(let [original-ns *ns*]
+;;			 (in-ns ~my-ns)
+;;			 ~form
+;;			 (in-ns original-ns)))
 	 	
 (defn create-models []
 	 

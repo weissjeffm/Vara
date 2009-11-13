@@ -8,21 +8,18 @@
    :page page
    :unhandled (throw-msg IllegalArgumentException)})
 
-
-
 (defn navigate-to [where] 
 	(if (.startsWith where "notfound") 
 		(raise errorblock-appeared "error block appeared" where)
 		(println "navigate step 1 ok"))
 	(println "navigate step 2 ok"))
 
-(defn create-thing [what]
+(defn create-thing [thing]
 	(with-handler 
-		(navigate-to what)
+		(navigate-to thing)
 		(handle errorblock-appeared [msg page]
-			(do (println (str "hit handler" page))
-			  (if (= page "notfound-expected") 
-					(do (println (str "hit expected error" page))
-							(throw (Exception. "hit exp error")))
-				  (do-not-handle))))))
+		  (if (= page "notfound-expected") 
+				(do (println (str "hit expected error" page))
+						(throw (Exception. "hit exp error")))
+			  (do-not-handle)))))
 							
