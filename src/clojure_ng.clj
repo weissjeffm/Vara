@@ -1,7 +1,7 @@
 (ns clojure-ng)
 
-(defn #^{:test {:groups #{:group1 :group2}}}
-	test1
+(defn #^{:test {:groups #{:group1 :group2} :runBefore :test2}}
+  test1
 	[]
 	(do (println "running test1")
 	(println "test1 complete")))
@@ -19,15 +19,16 @@
 	(throw (RuntimeException. "test failed!"))
 	(println "test3 complete")))
 	
-(defn execute-test "returns either :pass, or an exception" [mytest]
-	(try (do (mytest) :pass)
-		(catch Exception e e))) 
+(defn execute-test "returns results, with the test name, and \
+either :pass, :skip, or an exception, conj'd onto the end" 
+	[mytest results]
+	(conj results mytest 
+        ((try (do (mytest) :pass)
+         (catch Exception e e))))) 
 		
 (defn runalltests [metadatafilter]
   (let [tests (filter metadatafilter (vals (ns-publics *ns*)))]
-  (apply hash-map 
-  	(interleave tests
-  		(map execute-test tests)))))
+  (hash-map (map execute-test tests))))
 
 
 (defn in-group? [group myfn]
