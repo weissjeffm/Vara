@@ -2,9 +2,7 @@
 <classpath>
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-	<classpathentry kind="lib" path="/home/weissj/.eclipse/org.eclipse.platform_3.4.0_155965261/plugins/clojure_1.0.0/clojure.jar"/>
-	<classpathentry kind="lib" path="/home/weissj/.eclipse/org.eclipse.platform_3.4.0_155965261/plugins/clojurecontrib_0.0.0.20090504_r756/clojure-contrib.jar"/>
 	<classpathentry kind="lib" path="classes"/>
 	<classpathentry kind="lib" path="/usr/share/java/postgresql-jdbc.jar"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="output" path="classes"/>
 </classpath>
