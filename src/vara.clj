@@ -3,6 +3,17 @@
   (:import (bcrypt BCrypt)))
 (def mydb "vara")
 
+(def datatypes #{:fieldTypeDef :field :user :recordTypeDef :record})
+
+(defn valid-datatype? [kw]
+  (contains? datatypes kw))
+
+(defn db-id "Puts together a couchdb document id from a datatype keyword and a string"
+  [kw str]
+  (if-not (valid-datatype? kw)
+    (throw (IllegalArgmentException. (format "Invalid db datatype %s, known types are %s" (str kw) (str datatypes))))
+    (keyword (str (name kw) "-" str))))
+
 (defn create [docmap id]
   (with-db mydb (create-document docmap id)))
 
@@ -10,13 +21,13 @@
   (create {:name name 
 	   :type "fieldTypeDef"
 	   :validator_fn (str fn-form)},
-	  (str "fieldTypeDef-" name)))
+	  (db-id :fieldTypeDef name)))
 
 (defn create-field [name type fn-form]
   (create {:name name 
 	   :type "field"
 	   :typedef_id (str "fieldTypeDef-" type),
-	   :validator_fn (str fn-form)} (str "field-" name)))
+	   :validator_fn (str fn-form)} (db-id :field name)))
 
 (defn validate-field " Validator functions should always take
 these two arguments, and return a reason why the value is invalid, or nil if it's valid."
@@ -31,7 +42,7 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
 				   validation-error 
 				   (str value))))))))
 
-(defn validate-fields [typedef fieldmap ]
+(defn validate-fields [typedef fieldmap]
   (doseq [field-id (:field_ids typedef)]
     (let [field (with-db mydb (get-document field-id))
 	  name (:name field)
@@ -47,11 +58,11 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
 	     :email email
 	     :password hash
 	     :realname realname},
-	    (str "user-" userid))))
+	    (db-id :user userid))))
 
 (defn create-record [type fieldmap]
   (let [typestr (name type)
-	typedef-id (str "recordTypeDef-" typestr)
+	typedef-id (db-id :recordTypeDef typestr)
 	typedef (with-db mydb 
 		  (get-document typedef-id))]
     (validate-fields typedef fieldmap)
@@ -71,3 +82,21 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
   (run-server {:port 8080}
 	     "/*" 
 	     (servlet my-app) ))
+
+(defn login-controller [session params]
+  (dosync
+    (if
+      (and
+        (= "secret" (params :password))
+        ; Username can include letters, numbers,
+        ; spaces, underscores, and hyphens.
+        (.matches (params :name) "[\\w\\s\\-]+"))
+      (do
+        (alter session assoc :name (params :name))
+        (redirect-to "/articles/"))
+      (redirect-to "/login/"))))
+
+(defn login-controller2 [session params]
+  (dosync 
+   (if 
+       )))
