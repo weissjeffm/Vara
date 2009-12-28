@@ -1,2 +1,19 @@
-Just getting started....
+Vara is a flexible record-tracking application written in Clojure and couchdb.  It can be used for lots of applications, because the Vara itself is not domain-specific, but was created to do defect tracking, testcase tracking, task tracking etc.  Basically anything where there are stateful records.  The specific domain information (for instance, if you want to use it to track defects), comes from a couchdb database.  You can use the built-in schemas, or modify them, or replicate other users' schemas directly from their couchdb database, or build your own from scratch.
 
+Vara development has just begun, but here is a list of planned features:
+
+* Web UI
+
+* Dynamic schemas - You can modify your schema at any time, no migration necessary.
+
+* Flexible views - Search records, and create reports easily.
+
+* Programmable hooks - Validate fields, auto-update fields, check permissions, etc, when records are updated.
+
+* Users and groups - Groups can be members of other groups.  Integrate with existing authentication tools.
+
+* Links - maintain relationships between records (even records of different types)
+
+* Projects - integrate multiple domains in a single project.  For instance, you can have defect tracking and testcase tracking for your project, and you can intelligently link from a testcase record to a defect record.
+
+* XMLRPC API - to integrate with other applications
