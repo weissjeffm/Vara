@@ -1,18 +1,19 @@
 (ns vara
-  (:use  com.ashafa.clutch compojure)
+  (:use  com.ashafa.clutch 
+	 compojure)
   (:import (bcrypt BCrypt)))
 (def mydb "vara")
 
-(def datatypes #{:fieldTypeDef :field :user :recordTypeDef :record})
+(def datatypes #{:fieldTypeDef :field :user :group :recordTypeDef :record})
 
 (defn valid-datatype? [kw]
   (contains? datatypes kw))
 
 (defn db-id "Puts together a couchdb document id from a datatype keyword and a string"
-  [kw str]
+  [kw id-str]
   (if-not (valid-datatype? kw)
-    (throw (IllegalArgmentException. (format "Invalid db datatype %s, known types are %s" (str kw) (str datatypes))))
-    (keyword (str (name kw) "-" str))))
+    (throw (IllegalArgumentException. (format "Invalid db datatype %s, known types are %s" (str kw) (str datatypes))))
+    (str (name kw) "-" id-str)))
 
 (defn create [docmap id]
   (with-db mydb (create-document docmap id)))
@@ -70,33 +71,83 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
     (with-db mydb (create-document (assoc fieldmap 
 				     :type typestr
 				     :typedef_id typedef-id)))))
+(defn create-group [groupid description userid-list]
+     (create {:type "group"
+	      :groupid groupid
+	      :description description
+	      :members userid-list}
+	     (db-id :group groupid)))
+
+(defn is-member? [id idseq]
+  (let [group? (fn [thisid] (.startsWith thisid "group-"))]
+    (if (contains? (set idseq) id) true
+	(if (some group? idseq) 
+	  (recur id (let [groups (filter group? idseq)
+			  first-exp (:members (with-db mydb (get-document (first groups))))
+			  rest (rest groups)]
+		      (into first-exp rest)))
+	  false))))
+
+(comment (defn login-controller [session params]
+   (dosync
+    (if
+	(and
+	 (= "secret" (params :password))
+					; Username can include letters, numbers,
+					; spaces, underscores, and hyphens.
+	 (.matches (params :name) "[\\w\\s\\-]+"))
+      (do
+        (alter session assoc :name (params :name))
+        (redirect-to "/articles/"))
+      (redirect-to "/login/")))))
+
+(defn login-view [msg]
+  [ (html
+     [:form {:method "post"}
+      "User name: "
+      [:input {:name "userid-attempt", :type "text"}]
+      [:br]
+      "Password: "
+      [:input {:name "password-attempt", :type "password"}]
+      [:br]
+      [:input {:type "submit" :value "Log in"}]]
+     (if msg [:h2 msg]))])
+
+(defn login-controller [params session]
+  (dosync 
+   (if (params :password-attempt)
+     (do			      ;get the user from the db if any
+       (let [userid (params :userid-attempt)
+	     user (with-db mydb
+		    (get-document (db-id :user userid)))]
+	 (if user 
+	   (let [dbhash (:password user)]
+	     (if (bcrypt.BCrypt/checkpw (params :password-attempt) dbhash)
+	       (conj (redirect-to "/hello") {:session (session-assoc :loggedin userid)})
+	       (login-view "Invalid credentials, please try again.")))
+	   (login-view "Unknown user, please try again."))))
+     (login-view "woopsies something went really wrong here."))))
+
+(declare testjeff)
 
 (defroutes my-app
-  (GET "/"
-    (html [:h1 "Hello World"]))
-  (ANY "*"
-    (page-not-found)))
+  (GET "/login/" (login-view flash))
+  (POST "/login/" (login-controller params session))
+  (GET "/test/" (let [stuff (testjeff)]
+		  (println session)
+		  (assoc stuff :session (into session (:session stuff)))))
+  ;(ANY "/logout/" (logout-controller session))   
+  (GET "/hello"
+	(html [:h1 "Hello World"]))
+   (ANY "*"
+	(page-not-found)))
 
+(decorate my-app (with-session :memory))
 
 (defn start-compojure []
   (run-server {:port 8080}
 	     "/*" 
-	     (servlet my-app) ))
+	     (servlet my-app)))
 
-(defn login-controller [session params]
-  (dosync
-    (if
-      (and
-        (= "secret" (params :password))
-        ; Username can include letters, numbers,
-        ; spaces, underscores, and hyphens.
-        (.matches (params :name) "[\\w\\s\\-]+"))
-      (do
-        (alter session assoc :name (params :name))
-        (redirect-to "/articles/"))
-      (redirect-to "/login/"))))
-
-(defn login-controller2 [session params]
-  (dosync 
-   (if 
-       )))
+(defn testjeff []
+  {:body (html [:h1 "yabbo"]) :session {:myvar "myvalue"}})
