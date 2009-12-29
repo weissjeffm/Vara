@@ -1,6 +1,7 @@
 (ns vara
   (:use  com.ashafa.clutch 
-	 compojure)
+	 compojure
+	 clojure.contrib.str-utils)
   (:import (bcrypt BCrypt)))
 (def mydb "vara")
 
@@ -9,11 +10,21 @@
 (defn valid-datatype? [kw]
   (contains? datatypes kw))
 
+(defn validate-datatype [kw]
+  (if-not (valid-datatype? kw)
+    (throw (IllegalArgumentException. 
+	    (format "Invalid db datatype %s, known types are %s" (str kw) (str datatypes))))))
+
 (defn db-id "Puts together a couchdb document id from a datatype keyword and a string"
   [kw id-str]
-  (if-not (valid-datatype? kw)
-    (throw (IllegalArgumentException. (format "Invalid db datatype %s, known types are %s" (str kw) (str datatypes))))
-    (str (name kw) "-" id-str)))
+  (validate-datatype kw)  
+  (str (name kw) "-" id-str))
+
+(defn db-type "Strips the type info off of a couchdb id, and returns a keyword."
+  [db-id]
+  (let [mytype (keyword (first (re-split #"-" db-id)))]
+    (validate-datatype mytype)
+    mytype))
 
 (defn create [docmap id]
   (with-db mydb (create-document docmap id)))
@@ -52,6 +63,9 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
       (validate-field (:validator_fn type) field value)
       (validate-field (:validator_fn field) field value))))
 
+(defn require-fields [field-map]
+  (fn [x y] ))
+
 (defn create-user [userid realname email password]
   (let [hash (bcrypt.BCrypt/hashpw password (bcrypt.BCrypt/gensalt))]
     (create {:type "user"
@@ -66,11 +80,20 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
 	typedef-id (db-id :recordTypeDef typestr)
 	typedef (with-db mydb 
 		  (get-document typedef-id))]
-    (validate-fields typedef fieldmap)
-    
+    (validate-fields typedef fieldmap)    
     (with-db mydb (create-document (assoc fieldmap 
 				     :type typestr
 				     :typedef_id typedef-id)))))
+(defn update-record [id fieldmap]
+  (let [existing-record (with-db mydb (get-document id))]
+    (if-not existing-record 
+      (throw (IllegalArgumentException. 
+	      (format "Unable to update, record with id %s was not found in the database." id))))
+    (let [typedef-id (db-id :recordTypeDef (existing-record :type))
+	  typedef (with-db mydb (get-document typedef-id))]
+      (validate-fields typedef (into existing-record fieldmap))
+      (with-db mydb (update-document existing-record fieldmap) ))))
+
 (defn create-group [groupid description userid-list]
      (create {:type "group"
 	      :groupid groupid
@@ -79,7 +102,7 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
 	     (db-id :group groupid)))
 
 (defn is-member? [id idseq]
-  (let [group? (fn [thisid] (.startsWith thisid "group-"))]
+  (let [group? (fn [thisid] (= (db-type thisid) :group))]
     (if (contains? (set idseq) id) true
 	(if (some group? idseq) 
 	  (recur id (let [groups (filter group? idseq)
@@ -124,7 +147,7 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
 	   (let [dbhash (:password user)]
 	     (if (bcrypt.BCrypt/checkpw (params :password-attempt) dbhash)
 	       (conj (redirect-to "/hello") {:session (session-assoc :loggedin userid)})
-	       (login-view "Invalid credentials, please try again.")))
+	       (login-view "Invalidcredentials, please try again.")))
 	   (login-view "Unknown user, please try again."))))
      (login-view "woopsies something went really wrong here."))))
 
