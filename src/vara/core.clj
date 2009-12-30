@@ -1,30 +1,12 @@
-(ns vara
-  (:use  com.ashafa.clutch 
-	 compojure
-	 clojure.contrib.str-utils)
+(ns vara.core
+  (:use
+   [vara.api.hooks :only (validate-field)]
+   vara.db.utils
+   com.ashafa.clutch 
+   compojure
+   clojure.contrib.def)
   (:import (bcrypt BCrypt)))
-(def mydb "vara")
 
-(def datatypes #{:fieldTypeDef :field :user :group :recordTypeDef :record})
-
-(defn valid-datatype? [kw]
-  (contains? datatypes kw))
-
-(defn validate-datatype [kw]
-  (if-not (valid-datatype? kw)
-    (throw (IllegalArgumentException. 
-	    (format "Invalid db datatype %s, known types are %s" (str kw) (str datatypes))))))
-
-(defn db-id "Puts together a couchdb document id from a datatype keyword and a string"
-  [kw id-str]
-  (validate-datatype kw)  
-  (str (name kw) "-" id-str))
-
-(defn db-type "Strips the type info off of a couchdb id, and returns a keyword."
-  [db-id]
-  (let [mytype (keyword (first (re-split #"-" db-id)))]
-    (validate-datatype mytype)
-    mytype))
 
 (defn create [docmap id]
   (with-db mydb (create-document docmap id)))
@@ -41,18 +23,6 @@
 	   :typedef_id (str "fieldTypeDef-" type),
 	   :validator_fn (str fn-form)} (db-id :field name)))
 
-(defn validate-field " Validator functions should always take
-these two arguments, and return a reason why the value is invalid, or nil if it's valid."
-  [fn-str field value]
-  (if fn-str
-    (let [validation-error (try ((eval (read-string fn-str)) field value) 
-		      (catch Exception e 
-			(throw (IllegalArgumentException. (format "Invalid validator function: %s" fn-str) e))))]
-      (if validation-error 
-	(throw (Exception. (format "The field '%s' %s. Value given was %s" 
-				   (:name field)
-				   validation-error 
-				   (str value))))))))
 
 (defn validate-fields [typedef fieldmap]
   (doseq [field-id (:field_ids typedef)]
@@ -62,9 +32,6 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
 	  value (fieldmap (keyword name))]
       (validate-field (:validator_fn type) field value)
       (validate-field (:validator_fn field) field value))))
-
-(defn require-fields [field-map]
-  (fn [x y] ))
 
 (defn create-user [userid realname email password]
   (let [hash (bcrypt.BCrypt/hashpw password (bcrypt.BCrypt/gensalt))]
@@ -101,15 +68,7 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
 	      :members userid-list}
 	     (db-id :group groupid)))
 
-(defn is-member? [id idseq]
-  (let [group? (fn [thisid] (= (db-type thisid) :group))]
-    (if (contains? (set idseq) id) true
-	(if (some group? idseq) 
-	  (recur id (let [groups (filter group? idseq)
-			  first-exp (:members (with-db mydb (get-document (first groups))))
-			  rest (rest groups)]
-		      (into first-exp rest)))
-	  false))))
+
 
 (comment (defn login-controller [session params]
    (dosync
