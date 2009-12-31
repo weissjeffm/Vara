@@ -22,10 +22,11 @@ these two arguments, and return a reason why the value is invalid, or nil if it'
   [fn-str field value]
   (println *ns*)
   (if fn-str
-    (let [validation-error (try ((eval (read-string fn-str)) field value) 
-				(catch Exception e 
-				  (throw (IllegalArgumentException.
-					  (format "Invalid validator function: %s" fn-str) e))))]
+    (let [validation-error (binding [*ns* (find-ns 'vara.api.hooks)] 
+			     (try ((eval (read-string fn-str)) field value)  
+				  (catch Exception e 
+				    (throw (IllegalArgumentException.
+					    (format "Invalid validator function: %s" fn-str) e)))))]
       (if validation-error 
 	(throw (Exception. (format "The field '%s' %s. Value given was %s" 
 				   (:name field)
