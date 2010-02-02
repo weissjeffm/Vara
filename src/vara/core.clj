@@ -95,6 +95,9 @@
       [:input {:type "submit" :value "Log in"}]]
      (if msg [:h2 msg]))])
 
+(defn hello-view [user] 
+  (html [:h1 (str "Hello " user)]))
+
 (defn login-controller [params session]
   (dosync 
    (if (params :password-attempt)
@@ -105,8 +108,8 @@
 	 (if user 
 	   (let [dbhash (:password user)]
 	     (if (bcrypt.BCrypt/checkpw (params :password-attempt) dbhash)
-	       (conj (redirect-to "/hello") {:session (session-assoc :loggedin userid)})
-	       (login-view "Invalidcredentials, please try again.")))
+	       [(hello-view userid) (session-assoc :loggedin userid)]
+	       (login-view "Invalid credentials, please try again.")))
 	   (login-view "Unknown user, please try again."))))
      (login-view "woopsies something went really wrong here."))))
 
@@ -119,8 +122,8 @@
 		  (println session)
 		  (assoc stuff :session (into session (:session stuff)))))
   ;(ANY "/logout/" (logout-controller session))   
-  (GET "/hello"
-	(html [:h1 "Hello World"]))
+  (GET "/session"
+	(html [:h1 (str "Hello, your session is: " session)]))
    (ANY "*"
 	(page-not-found)))
 
