@@ -5,7 +5,7 @@
    com.ashafa.clutch 
    compojure
    clojure.contrib.def)
-  (:import (bcrypt BCrypt)))
+  (:import (jBCrypt BCrypt)))
 
 
 (defn create [docmap id]
@@ -107,7 +107,7 @@
 		    (get-document (db-id :user userid)))]
 	 (if user 
 	   (let [dbhash (:password user)]
-	     (if (bcrypt.BCrypt/checkpw (params :password-attempt) dbhash)
+	     (if (jBCrypt.BCrypt/checkpw (params :password-attempt) dbhash)
 	       [(hello-view userid) (session-assoc :loggedin userid)]
 	       (login-view "Invalid credentials, please try again.")))
 	   (login-view "Unknown user, please try again."))))
