@@ -34,7 +34,7 @@
       (validate-field (:validator_fn field) field value))))
 
 (defn create-user [userid realname email password]
-  (let [hash (bcrypt.BCrypt/hashpw password (bcrypt.BCrypt/gensalt))]
+  (let [hash (jBCrypt.BCrypt/hashpw password (jBCrypt.BCrypt/gensalt))]
     (create {:type "user"
 	     :userid userid
 	     :email email
@@ -93,10 +93,22 @@
       [:input {:name "password-attempt", :type "password"}]
       [:br]
       [:input {:type "submit" :value "Log in"}]]
-     (if msg [:h2 msg]))])
+     (if msg [:h2.errorBlock msg]))])
 
+(defn view-record [record]
+  [(html 
+    [:div.show-record
+     [:table
+      [:tbody
+       (map (fn [key] [:tr [:td (name key)] [:td (key record)]])
+	    (keys record))]]])])
+
+(defn new-record []
+  [(html [:div.new-record [:form [:select () ]]])])
 (defn hello-view [user] 
-  (html [:h1 (str "Hello " user)]))
+  (html [:div.welcome 
+	 [:h1 (str "Hello " user)]
+	 [:a {:href "view/"}]]))
 
 (defn login-controller [params session]
   (dosync 
