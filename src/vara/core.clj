@@ -23,18 +23,17 @@
 	   :typedef_id (str "fieldTypeDef-" type),
 	   :validator_fn (str fn-form)} (db-id :field name)))
 
-
 (defn validate-fields [typedef fieldmap]
   (doseq [field-id (:field_ids typedef)]
     (let [field (with-db mydb (get-document field-id))
 	  name (:name field)
-	  type (with-db mydb (get-document (:typedef_id field)))
+	  type (get-type-record field)
 	  value (fieldmap (keyword name))]
       (validate-field (:validator_fn type) field value)
       (validate-field (:validator_fn field) field value))))
 
 (defn create-user [userid realname email password]
-  (let [hash (bcrypt.BCrypt/hashpw password (bcrypt.BCrypt/gensalt))]
+  (let [hash (jBCrypt.BCrypt/hashpw password (jBCrypt.BCrypt/gensalt))]
     (create {:type "user"
 	     :userid userid
 	     :email email
@@ -69,6 +68,9 @@
 	     (db-id :group groupid)))
 
 
+
+(comment (defn htmlize-field [record field-name] 
+   (let [ ])))
 
 (comment (defn login-controller [session params]
    (dosync

@@ -23,3 +23,6 @@
   (let [mytype (keyword (first (re-split #"-" db-id)))]
     (validate-datatype mytype)
     mytype))
+
+(defn get-type-record [record]
+  (with-db mydb (get-document (:typedef_id record))))
