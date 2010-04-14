@@ -1,5 +1,6 @@
 (ns vara.db.utils
-  (:use clojure.contrib.str-utils))
+  (:use com.ashafa.clutch
+	clojure.contrib.str-utils))
 
 (def mydb "vara")
 
